@@ -1,0 +1,65 @@
+#include "../include/Product.h"
+#include <stdexcept>
+
+int Product::_idCounter = 100;
+
+// ── Constructor ───────────────────────────────────────────────
+Product::Product(const std::string& name, double price, int quantity, const std::string& category)
+    : _id(++_idCounter), _name(name), _price(price), _quantity(quantity), _category(category)
+{
+    if (price < 0)    throw std::invalid_argument("Price cannot be negative.");
+    if (quantity < 0) throw std::invalid_argument("Quantity cannot be negative.");
+}
+
+// ── Setters ───────────────────────────────────────────────────
+void Product::setPrice(double price) {
+    if (price < 0) throw std::invalid_argument("Price cannot be negative.");
+    _price = price;
+}
+
+void Product::setQuantity(int quantity) {
+    if (quantity < 0) throw std::invalid_argument("Quantity cannot be negative.");
+    _quantity = quantity;
+}
+
+// ── Stock operations ──────────────────────────────────────────
+bool Product::restock(int units) {
+    if (units <= 0) return false;
+    _quantity += units;
+    return true;
+}
+
+bool Product::sell(int units) {
+    if (units <= 0 || units > _quantity) return false;
+    _quantity -= units;
+    return true;
+}
+
+bool Product::isLowStock() const {
+    return _quantity < 5;
+}
+
+// ── Final price after discount ────────────────────────────────
+double Product::getFinalPrice() const {
+    return _price * (1.0 - getDiscount());
+}
+
+// ── Display ───────────────────────────────────────────────────
+void Product::display() const {
+    std::cout << std::left
+              << "  [" << std::setw(4) << _id << "] "
+              << std::setw(22) << _name
+              << std::setw(14) << getType()
+              << "KES " << std::setw(10) << std::fixed << std::setprecision(2) << getFinalPrice()
+              << "Qty: " << std::setw(6) << _quantity
+              << (isLowStock() ? " ⚠ LOW" : "")
+              << "\n";
+}
+
+// ── Stream operator ───────────────────────────────────────────
+std::ostream& operator<<(std::ostream& os, const Product& p) {
+    os << "[" << p._id << "] " << p._name << " | " << p.getType()
+       << " | KES " << std::fixed << std::setprecision(2) << p.getFinalPrice()
+       << " | Qty: " << p._quantity;
+    return os;
+}
