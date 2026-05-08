@@ -1,0 +1,48 @@
+#include "../include/ProductTypes.h"
+#include <iomanip>
+
+// ─────────────────────────────────────────────────────────────
+//  ElectronicsProduct
+// ─────────────────────────────────────────────────────────────
+ElectronicsProduct::ElectronicsProduct(const std::string& name, double price,
+                                       int quantity, int warrantyMonths)
+    : Product(name, price, quantity, "Electronics"), _warrantyMonths(warrantyMonths) {}
+
+void ElectronicsProduct::display() const {
+    Product::display();
+    std::cout << "       Warranty: " << _warrantyMonths << " months"
+              << " | Discount: 5%\n";
+}
+
+
+// ─────────────────────────────────────────────────────────────
+//  FoodProduct
+// ─────────────────────────────────────────────────────────────
+FoodProduct::FoodProduct(const std::string& name, double price, int quantity,
+                         const std::string& expiryDate, bool isPerishable)
+    : Product(name, price, quantity, "Food"),
+      _expiryDate(expiryDate), _isPerishable(isPerishable) {}
+
+void FoodProduct::display() const {
+    Product::display();
+    std::cout << "       Expiry: " << _expiryDate
+              << " | Perishable: " << (_isPerishable ? "Yes" : "No")
+              << " | Discount: " << (getDiscount() * 100) << "%\n";
+}
+
+
+// ─────────────────────────────────────────────────────────────
+//  ClothingProduct
+// ─────────────────────────────────────────────────────────────
+ClothingProduct::ClothingProduct(const std::string& name, double price, int quantity,
+                                 const std::string& size, const std::string& brand, bool isOnSale)
+    : Product(name, price, quantity, "Clothing"),
+      _size(size), _brand(brand), _isOnSale(isOnSale) {}
+
+void ClothingProduct::display() const {
+    Product::display();
+    std::cout << "       Brand: " << _brand
+              << " | Size: " << _size
+              << " | Sale: " << (_isOnSale ? "YES -20%" : "No") << "\n";
+}
+
