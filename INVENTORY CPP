@@ -1,0 +1,154 @@
+Inventory CPP
+
+#include "../include/Inventory.h"
+#include <iostream>
+#include <iomanip>
+#include <algorithm>
+#include <stdexcept>
+
+// ── Constructor ───────────────────────────────────────────────
+Inventory::Inventory(const std::string& shopName) : _shopName(shopName) {}
+
+// ── Private helper ────────────────────────────────────────────
+std::shared_ptr<Product> Inventory::findById(int id) const {
+    for (auto& p : _products)
+        if (p->getId() == id) return p;
+    return nullptr;
+}
+
+// ── CRUD operations ───────────────────────────────────────────
+void Inventory::addProduct(std::shared_ptr<Product> product) {
+    _products.push_back(product);
+    std::cout << "  ✔ Added: " << *product << "\n";
+}
+
+bool Inventory::removeProduct(int id) {
+    auto it = std::remove_if(_products.begin(), _products.end(),
+                             [id](const std::shared_ptr<Product>& p){ return p->getId() == id; });
+    if (it == _products.end()) {
+        std::cout << "  ✘ Product ID " << id << " not found.\n";
+        return false;
+    }
+    std::cout << "  ✔ Removed product ID " << id << ".\n";
+    _products.erase(it, _products.end());
+    return true;
+}
+
+bool Inventory::restockProduct(int id, int units) {
+    auto p = findById(id);
+    if (!p) { std::cout << "  ✘ Product ID " << id << " not found.\n"; return false; }
+    p->restock(units);
+    std::cout << "  ✔ Restocked '" << p->getName() << "' by " << units
+              << " units. New qty: " << p->getQuantity() << "\n";
+    return true;
+}
+
+bool Inventory::sellProduct(int id, int units) {
+    auto p = findById(id);
+    if (!p) { std::cout << "  ✘ Product ID " << id << " not found.\n"; return false; }
+    if (!p->sell(units)) {
+        std::cout << "  ✘ Cannot sell " << units << " unit(s) of '"
+                  << p->getName() << "'. Only " << p->getQuantity() << " in stock.\n";
+        return false;
+    }
+    double revenue = units * p->getFinalPrice();
+    std::cout << "  ✔ Sold " << units << "x '" << p->getName()
+              << "' | Revenue: KES " << std::fixed << std::setprecision(2) << revenue;
+    if (p->isLowStock()) std::cout << "  ⚠ Stock now LOW (" << p->getQuantity() << " left)";
+    std::cout << "\n";
+    return true;
+}
+
+bool Inventory::updatePrice(int id, double newPrice) {
+    auto p = findById(id);
+    if (!p) { std::cout << "  ✘ Product ID " << id << " not found.\n"; return false; }
+    double old = p->getPrice();
+    p->setPrice(newPrice);
+    std::cout << "  ✔ Updated price of '" << p->getName()
+              << "': KES " << old << " → KES " << newPrice << "\n";
+    return true;
+}
+
+// ── Search & filter ───────────────────────────────────────────
+std::shared_ptr<Product> Inventory::searchById(int id) const {
+    return findById(id);
+}
+
+std::vector<std::shared_ptr<Product>> Inventory::searchByName(const std::string& keyword) const {
+    std::vector<std::shared_ptr<Product>> results;
+    for (auto& p : _products) {
+        std::string name = p->getName();
+        std::string kw   = keyword;
+        // Case-insensitive match
+        std::transform(name.begin(), name.end(), name.begin(), ::tolower);
+        std::transform(kw.begin(),   kw.end(),   kw.begin(),   ::tolower);
+        if (name.find(kw) != std::string::npos)
+            results.push_back(p);
+    }
+    return results;
+}
+
+std::vector<std::shared_ptr<Product>> Inventory::filterByCategory(const std::string& category) const {
+    std::vector<std::shared_ptr<Product>> results;
+    for (auto& p : _products)
+        if (p->getCategory() == category) results.push_back(p);
+    return results;
+}
+
+std::vector<std::shared_ptr<Product>> Inventory::getLowStockItems() const {
+    std::vector<std::shared_ptr<Product>> results;
+    for (auto& p : _products)
+        if (p->isLowStock()) results.push_back(p);
+    return results;
+}
+
+// ── Reports ───────────────────────────────────────────────────
+void Inventory::displayAll() const {
+    std::cout << "\n" << std::string(65, '=') << "\n";
+    std::cout << "  " << _shopName << " — Full Inventory (" << _products.size() << " products)\n";
+    std::cout << std::string(65, '=') << "\n";
+    std::cout << std::left
+              << "  " << std::setw(6)  << "ID"
+              << std::setw(22) << "Name"
+              << std::setw(14) << "Type"
+              << std::setw(14) << "Price (KES)"
+              << "Stock\n";
+    std::cout << "  " << std::string(60, '-') << "\n";
+    for (auto& p : _products) p->display();
+    std::cout << std::string(65, '=') << "\n";
+}
+
+void Inventory::displayLowStock() const {
+    auto items = getLowStockItems();
+    std::cout << "\n  ⚠ LOW STOCK ALERT — " << items.size() << " item(s) need restocking:\n";
+    std::cout << "  " << std::string(50, '-') << "\n";
+    for (auto& p : items) p->display();
+}
+
+void Inventory::displayByCategory(const std::string& category) const {
+    auto items = filterByCategory(category);
+    std::cout << "\n  Category: " << category << " (" << items.size() << " items)\n";
+    std::cout << "  " << std::string(50, '-') << "\n";
+    for (auto& p : items) p->display();
+}
+
+void Inventory::printSummaryReport() const {
+    double total = getTotalStockValue();
+    int    low   = static_cast<int>(getLowStockItems().size());
+
+    std::cout << "\n" << std::string(50, '=') << "\n";
+    std::cout << "  INVENTORY SUMMARY — " << _shopName << "\n";
+    std::cout << std::string(50, '=') << "\n";
+    std::cout << "  Total products   : " << _products.size() << "\n";
+    std::cout << "  Total stock value: KES " << std::fixed << std::setprecision(2) << total << "\n";
+    std::cout << "  Low stock items  : " << low << "\n";
+    std::cout << std::string(50, '=') << "\n";
+}
+
+double Inventory::getTotalStockValue() const {
+    double total = 0;
+    for (auto& p : _products)
+        total += p->getFinalPrice() * p->getQuantity();
+    return total;
+}
+
